@@ -1,0 +1,258 @@
+package com.demo.entities;
+public class Product {
+private String id;
+private String name;
+private double price;
+private String photo;
+public Product() {
+}
+public Product(String id, String name, String photo, double price) {
+this.id = id;
+this.name = name;
+this.price = price;
+this.photo = photo;
+}
+public String getId() {
+return id;
+}
+public void setId(String id) {
+this.id = id;
+}
+public String getName() {
+return name;
+}
+public void setName(String name) {
+this.name = name;
+}
+public double getPrice() {
+return price;
+}
+public void setPrice(double price) {
+this.price = price;
+}
+public String getPhoto() {
+return photo;
+}
+public void setPhoto(String photo) {
+this.photo = photo;
+}
+}
+Item.java
+package com.demo.entities;
+public class Item {
+private Product product;
+private int quantity;
+public Item() {
+}
+public Item(Product product, int quantity) {
+this.product = product;
+this.quantity = quantity;
+}
+public Product getProduct() {
+return product;
+}
+public void setProduct(Product product) {
+this.product = product;
+}
+public int getQuantity() {
+return quantity;
+}
+public void setQuantity(int quantity) {
+this.quantity = quantity;
+}
+}
+Create new package named com.demo.servlets. In this package,create 
+new Servlet named ProductServlet as below:
+package com.demo.servlets;
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import com.demo.models.ProductModel;
+@WebServlet("/product")
+public class ProductServlet extends HttpServlet {
+private static final long serialVersionUID = 1L;
+public ProductServlet() {
+super();
+}
+protected void doGet(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+ProductModel productModel = new ProductModel();
+request.setAttribute("products", productModel.findAll());
+request.getRequestDispatcher("product/index.jsp").forward(request, response);
+}
+protected void doPost(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+}
+}
+In com.demo.servlets package, create new Servlet named CartServlet as below:
+package com.demo.servlets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import com.demo.entities.Item;
+import com.demo.models.ProductModel;
+@WebServlet("/cart")
+public class CartServlet extends HttpServlet {
+private static final long serialVersionUID = 1L;
+public CartServlet() {
+super();
+}
+protected void doGet(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+String action = request.getParameter("action");
+if (action == null) {
+doGet_DisplayCart(request, response);
+} else {
+if (action.equalsIgnoreCase("buy")) {
+doGet_Buy(request, response);
+} else if (action.equalsIgnoreCase("remove")) {
+doGet_Remove(request, response);
+}
+}
+}
+protected void doGet_DisplayCart(HttpServletRequest request, HttpServletResponse 
+response)
+throws ServletException, IOException {
+request.getRequestDispatcher("cart/index.jsp").forward(request, response);
+}
+protected void doGet_Remove(HttpServletRequest request, HttpServletResponse 
+response)
+throws ServletException, IOException {
+HttpSession session = request.getSession();
+List<Item> cart = (List<Item>) session.getAttribute("cart");
+int index = isExisting(request.getParameter("id"), cart);
+cart.remove(index);
+session.setAttribute("cart", cart);
+response.sendRedirect("cart");
+}
+protected void doGet_Buy(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+ProductModel productModel = new ProductModel();
+HttpSession session = request.getSession();
+if (session.getAttribute("cart") == null) {
+List<Item> cart = new ArrayList<Item>();
+cart.add(new Item(productModel.find(request.getParameter("id")), 1));
+session.setAttribute("cart", cart);
+} else {
+List<Item> cart = (List<Item>) session.getAttribute("cart");
+int index = isExisting(request.getParameter("id"), cart);
+if (index == -1) {
+cart.add(new 
+Item(productModel.find(request.getParameter("id")), 1));
+} else {
+int quantity = cart.get(index).getQuantity() + 1;
+cart.get(index).setQuantity(quantity);
+}
+session.setAttribute("cart", cart);
+}
+response.sendRedirect("cart");
+}
+private int isExisting(String id, List<Item> cart) {
+for (int i = 0; i < cart.size(); i++) {
+if (cart.get(i).getProduct().getId().equalsIgnoreCase(id)) {
+return i;
+}
+}
+return -1;
+}
+protected void doPost(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+}
+}
+Create Product Pages
+Create new folder named product in src\main\webapp folder. In this folder, create 
+new JSP file named index.jsp as below:
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+pageEncoding="ISO-8859-1" isELIgnored="false"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<html>
+<head>
+<title>Product Page</title>
+</head>
+<body>
+<table cellpadding="2" cellspacing="2" border="1">
+<tr>
+<th>Id</th>
+<th>Name</th>
+<th>Photo</th>
+<th>Price</th>
+<th>Buy</th>
+</tr>
+<c:forEach var="product" items="${products }">
+<tr>
+<td>${product.id }</td>
+<td>${product.name }</td>
+<td>
+<img src="${pageContext.request.contextPath 
+}/assets/images/${product.photo }" width="120">
+</td>
+<td>${product.price }</td>
+<td align="center">
+<a href="${pageContext.request.contextPath 
+}/cart?&action=buy&id=${product.id }">Buy</a>
+</td>
+</tr>
+</c:forEach>
+</table>
+</body>
+</html>
+Create Cart Pages
+Create new folder named cart in src\main\webapp folder. In this folder, create new JSP file 
+named index.jsp as below:
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+pageEncoding="ISO-8859-1" isELIgnored="false"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<html>
+<head>
+<title>Cart Page</title>
+</head>
+<body>
+<table cellpadding="2" cellspacing="2" border="1">
+<tr>
+<th>Option</th>
+<th>Id</th>
+<th>Name</th>
+<th>Photo</th>
+<th>Price</th>
+<th>Quantity</th>
+<th>Sub Total</th>
+</tr>
+<c:set var="total" value="0"></c:set>
+<c:forEach var="item" items="${sessionScope.cart }">
+<c:set var="total" value="${total + item.product.price * item.quantity 
+}"></c:set>
+<tr>
+<td align="center">
+<a href="${pageContext.request.contextPath 
+}/cart?action=remove&id=${item.product.id }"
+onclick="return confirm('Are you sure?')">Remove</a>
+</td>
+<td>${item.product.id }</td>
+<td>${item.product.name }</td>
+<td>
+<img src="${pageContext.request.contextPath 
+}/assets/images/${item.product.photo }" width="120">
+</td>
+<td>${item.product.price }</td>
+<td>${item.quantity }</td>
+<td>${item.product.price * item.quantity }</td>
+</tr>
+</c:forEach>
+<tr>
+<td colspan="6" align="right">Total</td>
+<td>${total }</td>
+</tr>
+</table>
+<br>
+<a href="${pageContext.request.contextPath }/product">Continue Shopping</a>
+</body>
+</html>
